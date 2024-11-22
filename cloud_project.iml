@@ -8,5 +8,8 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="aws-java-sdk-1.11.643" level="project" />
+    <orderEntry type="library" name="etclib" level="project" />
+    <orderEntry type="library" name="http" level="project" />
+    <orderEntry type="library" name="jackson" level="project" />
   </component>
 </module>
