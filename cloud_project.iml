@@ -11,5 +11,15 @@
     <orderEntry type="library" name="etclib" level="project" />
     <orderEntry type="library" name="http" level="project" />
     <orderEntry type="library" name="jackson" level="project" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/libs/jsch" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+        <jarDirectory url="file://$MODULE_DIR$/libs/jsch" recursive="false" />
+      </library>
+    </orderEntry>
   </component>
 </module>
