@@ -10,6 +10,10 @@ package aws;
 
 import com.amazonaws.services.ec2.model.MonitorInstancesRequest;
 import com.amazonaws.services.ec2.model.UnmonitorInstancesRequest;
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Scanner;
 import com.amazonaws.AmazonClientException;
@@ -32,7 +36,6 @@ import com.amazonaws.services.ec2.model.InstanceType;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.RebootInstancesRequest;
-import com.amazonaws.services.ec2.model.RebootInstancesResult;
 import com.amazonaws.services.ec2.model.DescribeImagesRequest;
 import com.amazonaws.services.ec2.model.DescribeImagesResult;
 import com.amazonaws.services.ec2.model.Image;
@@ -60,6 +63,15 @@ public class awsTest {
                 .build();
     }
 
+    private static String getPublicIpAddress(String instance_id) {
+        DescribeInstancesRequest request = new DescribeInstancesRequest()
+                .withInstanceIds(instance_id);
+        DescribeInstancesResult response = ec2.describeInstances(request);
+
+        String public_ip = response.getReservations().get(0).getInstances().get(0).getPublicIpAddress();
+        return public_ip;
+    }
+
     public static void main(String[] args) throws Exception {
 
         init();
@@ -79,6 +91,7 @@ public class awsTest {
             System.out.println("  5. stop instance                6. create instance        ");
             System.out.println("  7. reboot instance              8. list images            ");
             System.out.println("  9. monitor instance            10. unmonitor instance     ");
+            System.out.println(" 11. condor status                                          ");
             System.out.println("                                 99. quit                   ");
             System.out.println("------------------------------------------------------------");
 
@@ -92,6 +105,7 @@ public class awsTest {
             }
 
             String instance_id = "";
+            String private_key = "";
 
             switch (number) {
                 case 1:
@@ -177,11 +191,27 @@ public class awsTest {
                     }
                     break;
 
+                case 11:
+                    System.out.print("Enter instance id: ");
+                    if (id_string.hasNext()) {
+                        instance_id = id_string.nextLine();
+                    }
+                    System.out.print("Enter private key path: ");
+                    if (id_string.hasNext()) {
+                        private_key = id_string.nextLine();
+                    }
+
+                    if (!instance_id.trim().isEmpty() && !private_key.trim().isEmpty()) {
+                        executeCondorStatus(instance_id, private_key);
+                    }
+                    break;
+
                 case 99:
                     System.out.println("bye!");
                     menu.close();
                     id_string.close();
                     return;
+
                 default:
                     System.out.println("concentration!");
             }
@@ -417,6 +447,44 @@ public class awsTest {
 
             System.out.printf(
                     "Successfully enabled unmonitoring for instance %s", instance_id);
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.toString());
+        }
+    }
+
+    public static void executeCondorStatus(String instance_id, String private_key) {
+        System.out.println("Executing condor_status on the EC2 instance...");
+
+        String host = getPublicIpAddress(instance_id);
+        String user = "ec2-user";
+        String command = "condor_status";
+
+        try {
+            JSch jsch = new JSch();
+            jsch.addIdentity(private_key);
+
+            Session session = jsch.getSession(user, host, 22);
+            session.setConfig("StrictHostKeyChecking", "no");
+            System.out.println("Connecting to " + host + "...");
+            session.connect();
+
+            ChannelExec channel = (ChannelExec) session.openChannel("exec");
+            channel.setCommand(command);
+            channel.setErrStream(System.err);
+
+            InputStream in = channel.getInputStream();
+            channel.connect();
+
+            System.out.println("\nCommand output:");
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                System.out.print(new String(buffer, 0, read));
+            }
+
+            channel.disconnect();
+            session.disconnect();
+            System.out.println("\n\nCommand executed successfully");
         } catch (Exception e) {
             System.out.println("Exception: " + e.toString());
         }
