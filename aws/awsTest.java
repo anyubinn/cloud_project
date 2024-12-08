@@ -91,7 +91,7 @@ public class awsTest {
             System.out.println("  5. stop instance                6. create instance        ");
             System.out.println("  7. reboot instance              8. list images            ");
             System.out.println("  9. monitor instance            10. unmonitor instance     ");
-            System.out.println(" 11. condor status                                          ");
+            System.out.println(" 11. condor status               12. find running instance  ");
             System.out.println("                                 99. quit                   ");
             System.out.println("------------------------------------------------------------");
 
@@ -204,6 +204,10 @@ public class awsTest {
                     if (!instance_id.trim().isEmpty() && !private_key.trim().isEmpty()) {
                         executeCondorStatus(instance_id, private_key);
                     }
+                    break;
+
+                case 12:
+                    findRunningInstances();
                     break;
 
                 case 99:
@@ -485,6 +489,41 @@ public class awsTest {
             channel.disconnect();
             session.disconnect();
             System.out.println("\n\nCommand executed successfully");
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.toString());
+        }
+    }
+
+    public static void findRunningInstances() {
+        System.out.println("Finding running instances....");
+
+        AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
+
+        try {
+            Filter filter = new Filter("instance-state-name");
+            filter.withValues("running");
+
+            DescribeInstancesRequest request = new DescribeInstancesRequest();
+            request.withFilters(filter);
+
+            DescribeInstancesResult response = ec2.describeInstances(request);
+
+            for (Reservation reservation : response.getReservations()) {
+                for (Instance instance : reservation.getInstances()) {
+                    System.out.printf(
+                            "[id] %s, " +
+                                    "[AMI] %s, " +
+                                    "[type] %s, " +
+                                    "[state] %10s, " +
+                                    "[monitoring state] %s",
+                            instance.getInstanceId(),
+                            instance.getImageId(),
+                            instance.getInstanceType(),
+                            instance.getState().getName(),
+                            instance.getMonitoring().getState());
+                }
+                System.out.println();
+            }
         } catch (Exception e) {
             System.out.println("Exception: " + e.toString());
         }
